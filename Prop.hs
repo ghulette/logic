@@ -85,8 +85,12 @@ eval (Or p q) e = eval p e || eval q e
 eval (Impl p q) e = not (eval p e) || eval q e
 eval (Iff p q) e = eval p e == eval q e
 
-printTruthTable :: Eq a => Formula a -> (a -> String) -> IO ()
-printTruthTable fm atos = do
-  let ats = atoms fm
-  let header = text "formula" <+> hsep (map (text . atos) ats)
-  putStrLn (render header)
+printTruthTable :: Formula String -> IO ()
+printTruthTable fm = do
+  print $ t "formula" <+> hsep (map t ats) $+$ vcat rows
+  where ats = atoms fm
+        bool True = t "T"
+        bool False = t "F"
+        row v = bool (eval fm v) <+> hsep (map (bool . v) ats)
+        rows = map row (valuations ats)
+        t = text

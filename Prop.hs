@@ -1,8 +1,8 @@
 import Prelude hiding (foldr)
-import Data.List (nub)
+import Data.List (nub,transpose)
 import Data.Foldable (Foldable,foldr)
 import qualified Data.Foldable as Foldable
-import Text.PrettyPrint
+import Text.PrettyPrint.Boxes
 
 type Var = String
 
@@ -16,7 +16,7 @@ data Formula a = PFalse
                | Iff (Formula a) (Formula a)
                | Forall Var (Formula a)
                | Exists Var (Formula a)
-               deriving (Eq,Show,Read)
+               deriving Eq
 
 false = PFalse
 true = PTrue
@@ -26,6 +26,16 @@ neg = Not
 (\/) = Or
 (==>) = Impl
 (<==>) = Iff
+
+parens s = "(" ++ s ++ ")"
+
+instance Show a => Show (Formula a) where
+  show PFalse = "false"
+  show PTrue = "true"
+  show (Atom a) = "atom " ++ show a
+  show (Not p) = "neg " ++ show p
+  show (And p q) = parens $ show p ++ " /\\ " ++ show q
+  show (Or p q) = parens $ show p ++ " \\/ " ++ show q
 
 conjuncts :: Formula a -> [Formula a]
 conjuncts (And p q) = conjuncts p ++ conjuncts q
@@ -86,11 +96,11 @@ eval (Impl p q) e = not (eval p e) || eval q e
 eval (Iff p q) e = eval p e == eval q e
 
 printTruthTable :: Formula String -> IO ()
-printTruthTable fm = do
-  print $ t "formula" <+> hsep (map t ats) $+$ vcat rows
+printTruthTable fm = printBox $ hsep 2 left $ map (vcat center1 . map text) cols
   where ats = atoms fm
-        bool True = t "T"
-        bool False = t "F"
-        row v = bool (eval fm v) <+> hsep (map (bool . v) ats)
-        rows = map row (valuations ats)
-        t = text
+        boolTok True = "T"
+        boolTok False = "F"
+        row v = boolTok (eval fm v) : map (boolTok . v) ats
+        header = show fm : ats
+        rows = header : map row (valuations ats)
+        cols = transpose rows

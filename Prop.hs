@@ -23,9 +23,13 @@ true = PTrue
 atom = Atom
 neg = Not
 (/\) = And
+infixl 9 /\
 (\/) = Or
+infixl 7 \/
 (==>) = Impl
+infixr 5 ==>
 (<==>) = Iff
+infix 4 <==>
 
 parens s = "(" ++ s ++ ")"
 
@@ -36,6 +40,9 @@ instance Show a => Show (Formula a) where
   show (Not p) = "neg " ++ show p
   show (And p q) = parens $ show p ++ " /\\ " ++ show q
   show (Or p q) = parens $ show p ++ " \\/ " ++ show q
+  show (Impl p q) = parens $ show p ++ " ==> " ++ show q
+  show (Iff p q) = parens $ show p ++ " <==> " ++ show q
+  
 
 conjuncts :: Formula a -> [Formula a]
 conjuncts (And p q) = conjuncts p ++ conjuncts q
@@ -81,7 +88,7 @@ atoms = nub . Foldable.toList
 valuations :: Eq a => [a] -> [a -> Bool]
 valuations [] = return (const $ error "Not found")
 valuations (x:xs) = do
-  b <- [True,False]
+  b <- [False,True]
   f <- valuations xs
   return (\y -> if x == y then b else f y)
 
@@ -101,6 +108,15 @@ printTruthTable fm = printBox $ hsep 2 left $ map (vcat center1 . map text) cols
         boolTok True = "T"
         boolTok False = "F"
         row v = boolTok (eval fm v) : map (boolTok . v) ats
-        header = show fm : ats
+        header = "formula" : ats
         rows = header : map row (valuations ats)
         cols = transpose rows
+
+tautology :: Eq a => Formula a -> Bool
+tautology fm = and $ map (eval fm) (valuations (atoms fm))
+
+unsatisfiable :: Eq a => Formula a -> Bool
+unsatisfiable fm = tautology (neg fm)
+
+satisfiable :: Eq a => Formula a -> Bool
+satisfiable fm = not (unsatisfiable fm)

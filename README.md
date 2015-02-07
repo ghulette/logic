@@ -1,4 +1,4 @@
 logic
 =====
 
-Experiments with logic programming in Haskell
+Experiments with logic programming

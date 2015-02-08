@@ -11,8 +11,8 @@ type 'a t =
 let rec to_string = function
   | False -> "false"
   | True -> "true"
-  | Neg p -> "~" ^ (to_string p)
-  | And (p,q) -> (to_string p) ^ "/\\" ^ (to_string q)
-  | Or (p,q) -> (to_string p) ^ "\\/" ^ (to_string q)
-  | Imp (p,q) -> (to_string p) ^ "==>" ^ (to_string q)
-  | Iff (p,q) -> (to_string p) ^ "<=>" ^ (to_string q)
+  | Neg p -> "~ " ^ (to_string p)
+  | And (p,q) -> (to_string p) ^ " /\\ " ^ (to_string q)
+  | Or (p,q) -> (to_string p) ^ " \\/ " ^ (to_string q)
+  | Imp (p,q) -> (to_string p) ^ " ==> " ^ (to_string q)
+  | Iff (p,q) -> (to_string p) ^ " <=> " ^ (to_string q)

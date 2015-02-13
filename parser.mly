@@ -9,10 +9,10 @@
 %token LPAREN RPAREN
 
 /* Highest to lowest precedece */
-%left IFF
-%left IMP
-%left DISJ
-%left CONJ
+%right IFF
+%right IMP
+%right DISJ
+%right CONJ
 %nonassoc NEG
 
 %start main

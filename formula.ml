@@ -8,17 +8,6 @@ type 'a t =
   | Imp of 'a t * 'a t
   | Iff of 'a t * 'a t
 
-let intro_neg p = Neg p
-let intro_and p q = And (p,q)
-let intro_or p q = Or (p,q)
-let intro_imp p q = Imp (p,q)
-let intro_iff p q = Iff (p,q)
-let elim_neg = function Neg p -> p | _ -> failwith "elim_neg"
-let elim_and = function And (p,q) -> (p,q) | _ -> failwith "elim_and"
-let elim_or = function Or (p,q) -> (p,q) | _ -> failwith "elim_or"
-let elim_imp = function Imp (p,q) -> (p,q) | _ -> failwith "elim_imp"
-let elim_iff = function Iff (p,q) -> (p,q) | _ -> failwith "elim_iff"
-
 let to_string e =
   let rec to_string_pr pr =
     let prec i s = if i < pr then "("^s^")" else s in
@@ -40,6 +29,32 @@ let to_string e =
        let s = (to_string_pr 5 p)^" <=> "^(to_string_pr 2 q) in
        prec 2 s
   in to_string_pr 0 e
+
+let intro_neg p = Neg p
+let intro_and p q = And (p,q)
+let intro_or p q = Or (p,q)
+let intro_imp p q = Imp (p,q)
+let intro_iff p q = Iff (p,q)
+let elim_neg = function Neg p -> p | _ -> failwith "elim_neg"
+let elim_and = function And (p,q) -> (p,q) | _ -> failwith "elim_and"
+let elim_or = function Or (p,q) -> (p,q) | _ -> failwith "elim_or"
+let elim_imp = function Imp (p,q) -> (p,q) | _ -> failwith "elim_imp"
+let elim_iff = function Iff (p,q) -> (p,q) | _ -> failwith "elim_iff"
+
+let rec conjuncts = function And(p,q) -> conjuncts p @ conjuncts q | fm -> [fm]
+let rec disjuncts = function Or(p,q) -> disjuncts p @ disjuncts q | fm -> [fm]
+let antecedent fm = fst (elim_imp fm)
+let consequent fm = snd (elim_imp fm)
+
+let rec on_atoms f = function
+  | False -> False
+  | True -> True
+  | Atom x -> f x
+  | Neg p -> Neg (on_atoms f p)
+  | And (p,q) -> And (on_atoms f p,on_atoms f q)
+  | Or (p,q) -> Or (on_atoms f p,on_atoms f q)
+  | Imp (p,q) -> Imp (on_atoms f p,on_atoms f q)
+  | Iff (p,q) -> Iff (on_atoms f p,on_atoms f q)
 
 let rec eval vl = function
   | False -> false

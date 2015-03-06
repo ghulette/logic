@@ -1,12 +1,11 @@
 let rec all_valuations ks vs =
   let (>>=) m f = List.flatten (List.map f m) in
-  let pure x = [x] in
   match ks with
-  | [] -> pure []
+  | [] -> [[]]
   | k::ks' ->
      List.map (fun v -> (k,v)) vs >>= fun kv ->
      all_valuations ks' vs >>= fun vl ->
-     pure (kv :: vl)
+     [kv :: vl]
 
 let time f x =
     let t0 = Sys.time () in

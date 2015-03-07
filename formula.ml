@@ -85,3 +85,12 @@ let rec eval vl = function
   | Iff (p,q) -> (eval vl p) = (eval vl q)
 
 let atoms fm = atom_union (fun a -> [a]) fm
+
+let rec all_valuations ks vs =
+  let (>>=) m f = List.flatten (List.map f m) in
+  match ks with
+  | [] -> [[]]
+  | k::ks' ->
+     List.map (fun v -> (k,v)) vs >>= fun kv ->
+     all_valuations ks' vs >>= fun vl ->
+     [kv :: vl]

@@ -1,13 +1,15 @@
-let rec replicate x = function
-  | 0 -> []
-  | n -> x :: replicate x (n-1)
+open Printf
 
-let rec map2_ex def f l1 l2 =
-  match (l1,l2) with
-  | ([],[]) -> []
-  | (x::l1',[])-> f x def :: map2_ex def f l1' []
-  | ([],y::l2') -> f y def :: map2_ex def f [] l2'
-  | (x::l1',y::l2') -> f x y :: map2_ex def f l1' l2'
+let rec replicate x = function 0 -> [] | n -> x :: replicate x (n-1)
+
+let rec print_table to_s header rows =
+  let widths = List.map String.length header in
+  List.iter (fun h -> printf "%s" h) header;
+  printf "\n";
+  List.iter begin fun r ->
+    List.iter2 (fun w c -> printf "%*s" w (to_s c)) widths r;
+    printf "\n";
+  end rows
 
 let time f x =
   let t0 = Sys.time () in

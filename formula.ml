@@ -91,6 +91,12 @@ let rec all_valuations ks vs =
   match ks with
   | [] -> [[]]
   | k::ks' ->
-     List.map (fun v -> (k,v)) vs >>= fun kv ->
-     all_valuations ks' vs >>= fun vl ->
-     [kv :: vl]
+    List.map (fun v -> (k,v)) vs >>= fun kv ->
+    all_valuations ks' vs >>= fun vl ->
+    [kv :: vl]
+
+let rec on_all_valuations f v = function
+  | [] -> f v
+  | p::ps ->
+    let v' t q = if q = p then t else v q in
+    on_all_valuations f (v' false) ps && on_all_valuations f (v' true) ps

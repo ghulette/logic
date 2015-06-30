@@ -1,40 +1,24 @@
-type 'a t =
-  | False
-  | True
-  | Atom of 'a
-  | Neg of 'a t
-  | And of 'a t * 'a t
-  | Or of 'a t * 'a t
-  | Imp of 'a t * 'a t
-  | Iff of 'a t * 'a t
+type 'a t = 'a Ast.t
 
-let to_string e =
-  let rec to_string_pr pr =
-    let prec i s = if i < pr then "("^s^")" else s in
-    function
-    | False -> "false"
-    | True -> "true"
-    | Atom _ -> invalid_arg "to_string"
-    | Neg p -> let s = "~ " ^ (to_string_pr 10 p) in prec 10 s
-    | And (p,q) -> 
-       let s = (to_string_pr 9 p)^" /\\ "^(to_string_pr 8 q) in
-       prec 8 s
-    | Or (p,q) -> 
-       let s = (to_string_pr 7 p)^" \\/ "^(to_string_pr 6 q) in
-       prec 6 s
-    | Imp (p,q) -> 
-       let s = (to_string_pr 6 p)^" ==> "^(to_string_pr 4 q) in
-       prec 4 s
-    | Iff (p,q) -> 
-       let s = (to_string_pr 5 p)^" <=> "^(to_string_pr 2 q) in
-       prec 2 s
-  in to_string_pr 0 e
+let to_string = Ast.to_string
 
+let of_string s =
+  let lexbuf = Lexing.from_string s in
+  Parser.main Lexer.token lexbuf
+
+let of_channel ch =
+  let lexbuf = Lexing.from_channel ch in
+  Parser.main Lexer.token lexbuf
+
+open Ast
+
+let mk_atom x = Atom x
 let mk_neg p = Neg p
 let mk_and p q = And (p,q)
 let mk_or p q = Or (p,q)
 let mk_imp p q = Imp (p,q)
 let mk_iff p q = Iff (p,q)
+let dest_atom = function Atom x -> x | _ -> failwith "dest_atom"
 let dest_neg = function Neg p -> p | _ -> failwith "dest_neg"
 let dest_and = function And (p,q) -> (p,q) | _ -> failwith "dest_and"
 let dest_or = function Or (p,q) -> (p,q) | _ -> failwith "dest_or"

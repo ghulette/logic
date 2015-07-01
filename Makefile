@@ -4,5 +4,6 @@ RESULT = fm
 all : byte-code-library native-code-library
 
 OCAMLYACC=menhir
+ANNOTATE=yes
 
 include OCamlMakefile

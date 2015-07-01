@@ -42,7 +42,7 @@ let rec on_atoms f = function
   | Atom x -> f x
   | Neg p -> Neg (on_atoms f p)
   | And (p,q) -> And (on_atoms f p, on_atoms f q)
-  | Or (p,q) -> Or (on_atoms f p, on_atoms f q)
+  | Or  (p,q) -> Or (on_atoms f p, on_atoms f q)
   | Imp (p,q) -> Imp (on_atoms f p, on_atoms f q)
   | Iff (p,q) -> Iff (on_atoms f p, on_atoms f q)
 
@@ -64,7 +64,7 @@ let rec eval vl = function
   | Atom x -> vl x
   | Neg p -> not (eval vl p)
   | And (p,q) -> (eval vl p) && (eval vl q)
-  | Or (p,q)  -> (eval vl p) || (eval vl q)
+  | Or  (p,q) -> (eval vl p) || (eval vl q)
   | Imp (p,q) -> not (eval vl p) || (eval vl q)
   | Iff (p,q) -> (eval vl p) = (eval vl q)
 
@@ -84,3 +84,10 @@ let rec on_all_valuations f v = function
   | p::ps ->
     let v' t q = if q = p then t else v q in
     on_all_valuations f (v' false) ps && on_all_valuations f (v' true) ps
+
+let print_truth_table f =
+  let vls = all_valuations (atoms f) [true; false] in
+  let rs = List.map (fun vl -> eval vl f) (List.map Util.partial vls) in
+  let rows = List.map2 (fun vs r -> (List.map snd vs) @ [r]) vls rs in
+  let hdr = (List.map Char.escaped (atoms f)) @ ["fm"] in
+  Util.print_table 5 string_of_bool hdr rows

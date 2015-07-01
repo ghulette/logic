@@ -13,3 +13,4 @@ parser.mli
 *.a
 *.cma
 *.cmxa
+*.annot

@@ -1,5 +1,3 @@
-open Printf
-
 let rec replicate x = function
   | 0 -> []
   | n -> x :: replicate x (n-1)
@@ -8,15 +6,20 @@ let rec seq = function
   | 0 -> []
   | n -> n :: seq (n-1)
 
-let print_table to_s header rows =
-  let widths = List.map String.length header in
+let print_table cell_width to_s header rows =
+  let open Printf in
   let print_row r =
-    List.iter2 (fun w c -> printf "%*s" w (to_s c)) widths r;
-    Printf.printf "\n"
+    let cs = List.map (fun c -> sprintf "%*s" cell_width (to_s c)) r in
+    String.concat " | " cs |> printf "| %s |\n"
   in
-  List.iter (fun h -> printf "%s" h) header;
-  printf "\n";
+  let hds = List.map (fun c -> sprintf "%*s" cell_width c) header in
+  let divs = List.map (fun _ -> String.make cell_width '-') header in
+  String.concat " | " hds |> printf "| %s |\n";
+  String.concat "-+-" divs |> printf "+-%s-+\n";
   List.iter print_row rows
+
+let partial db =
+  fun k -> List.assoc k db
 
 let time f x =
   let t0 = Sys.time () in

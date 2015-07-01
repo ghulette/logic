@@ -30,3 +30,5 @@ val atoms : 'a t -> 'a list
 val all_valuations : 'a list -> 'b list -> ('a * 'b) list list
 val on_all_valuations :
   (('a -> bool) -> bool) -> ('a -> bool) -> 'a list -> bool
+
+val print_truth_table : char t -> unit

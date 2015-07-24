@@ -84,17 +84,8 @@ let print_truth_table fm =
   let hdr = (List.map Char.escaped ats) @ ["fm"] in
   Util.print_table 5 string_of_bool hdr rows
 
-let on_all_valuations fm f =
-  let rec on_all_valuations_aux env = function
-    | [] -> f env
-    | x::xs ->
-       on_all_valuations_aux (V.extend x false env) xs
-       && on_all_valuations_aux (V.extend x true env) xs
-  in
-  on_all_valuations_aux V.empty (atoms fm)
-
 let tautology fm =
-  on_all_valuations fm (eval fm)
+  V.on_all (atoms fm) (eval fm)
 
 let unsatisfiable fm =
   tautology (Neg fm)

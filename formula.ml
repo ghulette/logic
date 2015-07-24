@@ -108,3 +108,9 @@ let on_all_valuations fm f =
                    
 let tautology fm =
   on_all_valuations fm (eval fm)
+
+let unsatisfiable fm =
+  tautology (Neg fm)
+                    
+let satisfiable fm =
+  not (unsatisfiable fm)

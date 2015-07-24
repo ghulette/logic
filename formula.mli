@@ -40,4 +40,6 @@ val print_truth_table : char t -> unit
 
 val on_all_valuations : 'a t -> ('a valuation -> bool) -> bool
 val tautology : 'a t -> bool
+val unsatisfiable : 'a t -> bool
+val satisfiable : 'a t -> bool
 

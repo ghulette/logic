@@ -1,6 +1,6 @@
 type 'a t
 
-val to_string : 'a t -> string
+val to_string : ('a -> string) -> 'a t -> string
 val of_string : string -> char t
 val of_channel : in_channel -> char t
 
@@ -22,23 +22,15 @@ val antecedent : 'a t -> 'a t
 val consequent : 'a t -> 'a t
 val conjuncts : 'a t -> 'a t list
 val disjuncts : 'a t -> 'a t list
-
-type 'a valuation = 'a -> bool
-
-val empty : 'a valuation
-val extend : 'a -> bool -> 'a valuation -> 'a valuation
-val lookup : 'a -> 'a valuation -> bool
-
                            
 val on_atoms : ('a -> 'b t) -> 'a t -> 'b t
 val over_atoms : ('a -> 'b -> 'b) -> 'a t -> 'b -> 'b
 val atom_union : ('a -> 'b list) -> 'a t -> 'b list
-val eval : 'a t -> 'a valuation -> bool
+val eval : 'a t -> 'a Valuation.t -> bool
 val atoms : 'a t -> 'a list
-val all_valuations : 'a list -> 'b list -> ('a * 'b) list list
 val print_truth_table : char t -> unit
 
-val on_all_valuations : 'a t -> ('a valuation -> bool) -> bool
+(* val on_all_valuations : 'a t -> ('a -> bool) -> bool*)
 val tautology : 'a t -> bool
 val unsatisfiable : 'a t -> bool
 val satisfiable : 'a t -> bool

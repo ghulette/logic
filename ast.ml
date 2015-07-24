@@ -8,13 +8,13 @@ type 'a t =
   | Imp of 'a t * 'a t
   | Iff of 'a t * 'a t
 
-let to_string e =
+let to_string atom_pr e =
   let rec to_string_pr pr =
     let prec i s = if i < pr then "(" ^ s ^ ")" else s in
     function
     | False -> "false"
     | True -> "true"
-    | Atom _ -> invalid_arg "to_string"
+    | Atom x -> atom_pr x
     | Neg p -> let s = "~ " ^ (to_string_pr 10 p) in prec 10 s
     | And (p,q) -> 
        let s = (to_string_pr 9 p)^" /\\ "^(to_string_pr 8 q) in

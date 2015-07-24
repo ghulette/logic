@@ -1,3 +1,5 @@
+module V = Valuation
+
 type 'a t = 'a Ast.t
 
 let to_string = Ast.to_string
@@ -28,11 +30,11 @@ let dest_iff = function Iff (p,q) -> (p,q) | _ -> failwith "dest_iff"
 let antecedent fm = fst (dest_imp fm)
 let consequent fm = snd (dest_imp fm)
 
-let rec conjuncts = function 
-  | And(p,q) -> conjuncts p @ conjuncts q 
+let rec conjuncts = function
+  | And(p,q) -> conjuncts p @ conjuncts q
   | fm -> [fm]
 
-let rec disjuncts = function 
+let rec disjuncts = function
   | Or(p,q) -> disjuncts p @ disjuncts q
   | fm -> [fm]
 
@@ -58,19 +60,11 @@ let atom_union f fm =
   let setify xs = List.sort_uniq compare xs in
   setify (over_atoms (fun h t -> (f h) @ t) fm [])
 
-
-type 'a valuation = 'a -> bool
-
-let empty = fun _ -> false
-let extend x v env = fun y -> if x = y then v else env x
-let lookup x env = env x
-
-         
 let rec eval fm env =
   match fm with
   | False -> false
   | True -> true
-  | Atom x -> lookup x env
+  | Atom x -> V.lookup x env
   | Neg p -> not (eval p env)
   | And (p,q) -> (eval p env) && (eval q env)
   | Or  (p,q) -> (eval p env) || (eval q env)
@@ -80,37 +74,30 @@ let rec eval fm env =
 let atoms fm =
   atom_union (fun a -> [a]) fm
 
-let rec all_valuations ks vs =
-  let (>>=) m f = List.flatten (List.map f m) in
-  match ks with
-  | [] -> [[]]
-  | k::ks' ->
-    List.map (fun v -> (k,v)) vs >>= fun kv ->
-    all_valuations ks' vs >>= fun vl ->
-    [kv :: vl]
-
 let print_truth_table fm =
-  let envs = all_valuations (atoms fm) [true; false] in
-  let rs = List.map (eval fm) (List.map Util.partial envs) in
-  let rows = List.map2 (fun vs r -> (List.map snd vs) @ [r]) envs rs in
-  let hdr = (List.map Char.escaped (atoms fm)) @ ["fm"] in
+  let ats = atoms fm in
+  let envs = V.all ats in
+  let rs = List.map (eval fm) envs in
+  let rowf env = List.map (fun x -> V.lookup x env) ats in
+  let vals = List.map rowf envs in
+  let rows = List.map2 (fun vl r -> vl @ [r]) vals rs in
+  let hdr = (List.map Char.escaped ats) @ ["fm"] in
   Util.print_table 5 string_of_bool hdr rows
 
-                            
-let on_all_valuations fm f = 
+let on_all_valuations fm f =
   let rec on_all_valuations_aux env = function
     | [] -> f env
     | x::xs ->
-       on_all_valuations_aux (extend x false env) xs
-       && on_all_valuations_aux (extend x true env) xs
+       on_all_valuations_aux (V.extend x false env) xs
+       && on_all_valuations_aux (V.extend x true env) xs
   in
-  on_all_valuations_aux (fun _ -> false) (atoms fm)
-                   
+  on_all_valuations_aux V.empty (atoms fm)
+
 let tautology fm =
   on_all_valuations fm (eval fm)
 
 let unsatisfiable fm =
   tautology (Neg fm)
-                    
+
 let satisfiable fm =
   not (unsatisfiable fm)

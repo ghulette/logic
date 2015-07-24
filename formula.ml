@@ -58,17 +58,27 @@ let atom_union f fm =
   let setify xs = List.sort_uniq compare xs in
   setify (over_atoms (fun h t -> (f h) @ t) fm [])
 
-let rec eval vl = function
+
+type 'a valuation = 'a -> bool
+
+let empty = fun _ -> false
+let extend x v env = fun y -> if x = y then v else env x
+let lookup x env = env x
+
+         
+let rec eval fm env =
+  match fm with
   | False -> false
   | True -> true
-  | Atom x -> vl x
-  | Neg p -> not (eval vl p)
-  | And (p,q) -> (eval vl p) && (eval vl q)
-  | Or  (p,q) -> (eval vl p) || (eval vl q)
-  | Imp (p,q) -> not (eval vl p) || (eval vl q)
-  | Iff (p,q) -> (eval vl p) = (eval vl q)
+  | Atom x -> lookup x env
+  | Neg p -> not (eval p env)
+  | And (p,q) -> (eval p env) && (eval q env)
+  | Or  (p,q) -> (eval p env) || (eval q env)
+  | Imp (p,q) -> not (eval p env) || (eval q env)
+  | Iff (p,q) -> (eval p env) = (eval q env)
 
-let atoms fm = atom_union (fun a -> [a]) fm
+let atoms fm =
+  atom_union (fun a -> [a]) fm
 
 let rec all_valuations ks vs =
   let (>>=) m f = List.flatten (List.map f m) in
@@ -79,15 +89,22 @@ let rec all_valuations ks vs =
     all_valuations ks' vs >>= fun vl ->
     [kv :: vl]
 
-let rec on_all_valuations f v = function
-  | [] -> f v
-  | p::ps ->
-    let v' t q = if q = p then t else v q in
-    on_all_valuations f (v' false) ps && on_all_valuations f (v' true) ps
-
-let print_truth_table f =
-  let vls = all_valuations (atoms f) [true; false] in
-  let rs = List.map (fun vl -> eval vl f) (List.map Util.partial vls) in
-  let rows = List.map2 (fun vs r -> (List.map snd vs) @ [r]) vls rs in
-  let hdr = (List.map Char.escaped (atoms f)) @ ["fm"] in
+let print_truth_table fm =
+  let envs = all_valuations (atoms fm) [true; false] in
+  let rs = List.map (eval fm) (List.map Util.partial envs) in
+  let rows = List.map2 (fun vs r -> (List.map snd vs) @ [r]) envs rs in
+  let hdr = (List.map Char.escaped (atoms fm)) @ ["fm"] in
   Util.print_table 5 string_of_bool hdr rows
+
+                            
+let on_all_valuations fm f = 
+  let rec on_all_valuations_aux env = function
+    | [] -> f env
+    | x::xs ->
+       on_all_valuations_aux (extend x false env) xs
+       && on_all_valuations_aux (extend x true env) xs
+  in
+  on_all_valuations_aux (fun _ -> false) (atoms fm)
+                   
+let tautology fm =
+  on_all_valuations fm (eval fm)

@@ -44,7 +44,7 @@ let rec on_atoms f = function
   | Atom x -> f x
   | Neg p -> Neg (on_atoms f p)
   | And (p,q) -> And (on_atoms f p, on_atoms f q)
-  | Or  (p,q) -> Or (on_atoms f p, on_atoms f q)
+  | Or  (p,q) -> Or  (on_atoms f p, on_atoms f q)
   | Imp (p,q) -> Imp (on_atoms f p, on_atoms f q)
   | Iff (p,q) -> Iff (on_atoms f p, on_atoms f q)
 
@@ -92,3 +92,6 @@ let unsatisfiable fm =
 
 let satisfiable fm =
   not (unsatisfiable fm)
+
+let subst pf =
+  on_atoms (fun p -> Partial.applyd pf p ~default:(Atom p))

@@ -18,9 +18,6 @@ let print_table cell_width to_s header rows =
   String.concat "-+-" divs |> printf "+-%s-+\n";
   List.iter print_row rows
 
-let partial db =
-  fun k -> List.assoc k db
-
 let time f x =
   let t0 = Sys.time () in
   let fx = f x in

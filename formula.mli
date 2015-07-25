@@ -35,3 +35,4 @@ val tautology : 'a t -> bool
 val unsatisfiable : 'a t -> bool
 val satisfiable : 'a t -> bool
 
+val subst : ('a, 'a t) Partial.t -> 'a t -> 'a t

@@ -20,8 +20,8 @@ let update x y f = (x, y)::(undefine x f)
 
 let apply f x = List.assoc x f
 
-let applyd f x =
-  try Some (apply f x) with Not_found -> None
+let applyd f x ~default =
+  try apply f x with Not_found -> default
 
 let map g =
   List.map (fun (x, v) -> (x, g v))

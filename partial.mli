@@ -7,7 +7,7 @@ val defined : 'a -> ('a, 'b) t -> bool
 val undefine : 'a -> ('a, 'b) t -> ('a, 'b) t
 val update : 'a -> 'b -> ('a, 'b) t -> ('a, 'b) t
 val apply : ('a, 'b) t -> 'a -> 'b
-val applyd : ('a, 'b) t -> 'a -> 'b option
+val applyd : ('a, 'b) t -> 'a -> default:'b -> 'b
 val map : ('b -> 'c) -> ('a, 'b) t -> ('a, 'c) t
 
 module Infix :

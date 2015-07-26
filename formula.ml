@@ -95,3 +95,14 @@ let satisfiable fm =
 
 let subst pf =
   on_atoms (fun p -> Partial.applyd pf p ~default:(Atom p))
+
+let rec dual = function
+  | False -> True
+  | True -> False
+  | Atom x as a -> a
+  | Neg p -> Neg (dual p)
+  | And (p,q) -> Or (dual p, dual q)
+  | Or (p,q) -> And (dual p, dual q)
+  | _ -> failwith "Cannot dualize formulas with ==> or <=>"
+
+                  

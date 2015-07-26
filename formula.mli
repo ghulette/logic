@@ -30,9 +30,10 @@ val eval : 'a t -> 'a Valuation.t -> bool
 val atoms : 'a t -> 'a list
 val print_truth_table : char t -> unit
 
-(* val on_all_valuations : 'a t -> ('a -> bool) -> bool*)
 val tautology : 'a t -> bool
 val unsatisfiable : 'a t -> bool
 val satisfiable : 'a t -> bool
 
 val subst : ('a, 'a t) Partial.t -> 'a t -> 'a t
+
+val dual : 'a t -> 'a t

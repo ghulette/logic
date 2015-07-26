@@ -36,4 +36,5 @@ val satisfiable : 'a t -> bool
 
 val subst : ('a, 'a t) Partial.t -> 'a t -> 'a t
 
+(* eval (dual p) v = not(eval p (not ** v)) for any valuation v *)
 val dual : 'a t -> 'a t

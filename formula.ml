@@ -4,6 +4,9 @@ type 'a t = 'a Ast.t
 
 let to_string = Ast.to_string
 
+let print p =
+  print_endline (to_string Char.escaped p)
+
 let of_string s =
   let lexbuf = Lexing.from_string s in
   Parser.main Lexer.token lexbuf
@@ -37,6 +40,15 @@ let rec conjuncts = function
 let rec disjuncts = function
   | Or(p,q) -> disjuncts p @ disjuncts q
   | fm -> [fm]
+
+(* Bottom-up traversal *)
+let rec traverse f = function
+  | Neg p -> f (Neg (traverse f p))
+  | And (p,q) -> f (And (traverse f p, traverse f q))
+  | Or  (p,q) -> f (Or (traverse f p, traverse f q))
+  | Imp (p,q) -> f (Imp (traverse f p, traverse f q))
+  | Iff (p,q) -> f (Iff (traverse f p, traverse f q))
+  | _ as fm -> fm
 
 let rec on_atoms f = function
   | False -> False
@@ -104,5 +116,20 @@ let rec dual = function
   | And (p,q) -> Or (dual p, dual q)
   | Or (p,q) -> And (dual p, dual q)
   | _ -> failwith "Cannot dualize formulas with ==> or <=>"
-
                   
+let psimplify fm =
+  let simpl = function
+    | Neg False -> True
+    | Neg True -> False
+    | Neg (Neg p) -> p
+    | And (p, False) | And (False, p) -> False
+    | And (p, True)  | And (True, p) -> p
+    | Or  (p, False) | Or  (False, p) -> p
+    | Or  (p, True)  | Or  (True, p) -> True
+    | Imp (False, p) | Imp (p, True) -> True
+    | Imp (True, p) -> p
+    | Imp (p, False) -> Neg p
+    | Iff (p, True)  | Iff (True, p) -> p
+    | Iff (p, False) | Iff (False, p) -> Neg p
+    | _ as fm -> fm
+  in traverse simpl fm

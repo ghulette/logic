@@ -1,6 +1,7 @@
 type 'a t
 
 val to_string : ('a -> string) -> 'a t -> string
+val print : char t -> unit
 val of_string : string -> char t
 val of_channel : in_channel -> char t
 
@@ -22,12 +23,16 @@ val antecedent : 'a t -> 'a t
 val consequent : 'a t -> 'a t
 val conjuncts : 'a t -> 'a t list
 val disjuncts : 'a t -> 'a t list
-                           
+
+val traverse : ('a t -> 'a t) -> 'a t -> 'a t
+
 val on_atoms : ('a -> 'b t) -> 'a t -> 'b t
 val over_atoms : ('a -> 'b -> 'b) -> 'a t -> 'b -> 'b
 val atom_union : ('a -> 'b list) -> 'a t -> 'b list
-val eval : 'a t -> 'a Valuation.t -> bool
 val atoms : 'a t -> 'a list
+                                               
+val eval : 'a t -> 'a Valuation.t -> bool
+
 val print_truth_table : char t -> unit
 
 val tautology : 'a t -> bool
@@ -36,5 +41,8 @@ val satisfiable : 'a t -> bool
 
 val subst : ('a, 'a t) Partial.t -> 'a t -> 'a t
 
-(* eval (dual p) v = not(eval p (not ** v)) for any valuation v *)
+(* dual (dual p) = p *)
+(* forall v, eval (dual p) v = not(eval p (not ** v)) *)
 val dual : 'a t -> 'a t
+
+val psimplify : 'a t -> 'a t

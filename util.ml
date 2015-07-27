@@ -1,3 +1,7 @@
+let compose f g = fun x -> f (g x)
+
+let non p x = not (p x)
+
 let rec replicate x = function
   | 0 -> []
   | n -> x :: replicate x (n-1)
@@ -5,6 +9,13 @@ let rec replicate x = function
 let rec seq = function
   | 0 -> []
   | n -> n :: seq (n-1)
+
+let time f x =
+  let t0 = Sys.time () in
+  let fx = f x in
+  let t1 = Sys.time () in
+  Printf.printf "Execution time: %fs\n" (t1 -. t0);
+  fx
 
 let print_table cell_width to_s header rows =
   let open Printf in
@@ -18,9 +29,7 @@ let print_table cell_width to_s header rows =
   String.concat "-+-" divs |> printf "+-%s-+\n";
   List.iter print_row rows
 
-let time f x =
-  let t0 = Sys.time () in
-  let fx = f x in
-  let t1 = Sys.time () in
-  Printf.printf "Execution time: %fs\n" (t1 -. t0);
-  fx
+module Infix =
+  struct
+    let ( ** ) = compose
+  end

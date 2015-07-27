@@ -1,4 +1,4 @@
-SOURCES = util.ml \
+SOURCES = util.mli util.ml \
           valuation.mli valuation.ml \
           partial.mli partial.ml \
           ast.ml parser.mly lexer.mll \

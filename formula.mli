@@ -1,7 +1,7 @@
 type 'a t
 
 val to_string : ('a -> string) -> 'a t -> string
-val print : char t -> unit
+val print_formula : Format.formatter -> char t -> unit
 val of_string : string -> char t
 val of_channel : in_channel -> char t
 

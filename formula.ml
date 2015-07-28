@@ -4,8 +4,8 @@ type 'a t = 'a Ast.t
 
 let to_string = Ast.to_string
 
-let print p =
-  print_endline (to_string Char.escaped p)
+let print_formula ppf fm =
+  Format.fprintf ppf "%s" (to_string Char.escaped fm);;
 
 let of_string s =
   let lexbuf = Lexing.from_string s in

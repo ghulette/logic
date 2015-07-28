@@ -27,10 +27,10 @@ expr:
   | FALSE                   { False }
   | TRUE                    { True }
   | CHAR                    { Atom $1 }
-  | NEG expr                { Neg $2 }
+  | NEG expr                { Not $2 }
   | expr CONJ expr          { And ($1,$3) }
   | expr DISJ expr          { Or ($1,$3) }
-  | expr IMP expr           { Imp ($1,$3) }
-  | expr IFF expr           { Iff ($1,$3) }
+  | expr IMP expr           { Impl ($1,$3) }
+  | expr IFF expr           { Equiv ($1,$3) }
   | LPAREN expr RPAREN      { $2 }
 ;

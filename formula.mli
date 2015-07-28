@@ -46,3 +46,8 @@ val subst : ('a, 'a t) Partial.t -> 'a t -> 'a t
 val dual : 'a t -> 'a t
 
 val psimplify : 'a t -> 'a t
+val negative_lit : 'a t -> bool
+val positive_lit : 'a t -> bool
+val negate : 'a t -> 'a t
+
+val nnf : 'a t -> 'a t

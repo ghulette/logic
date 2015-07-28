@@ -18,17 +18,17 @@ let of_channel ch =
 open Ast
 
 let mk_atom x = Atom x
-let mk_neg p = Neg p
+let mk_neg p = Not p
 let mk_and p q = And (p,q)
 let mk_or p q = Or (p,q)
-let mk_imp p q = Imp (p,q)
-let mk_iff p q = Iff (p,q)
+let mk_imp p q = Impl (p,q)
+let mk_iff p q = Equiv (p,q)
 let dest_atom = function Atom x -> x | _ -> failwith "dest_atom"
-let dest_neg = function Neg p -> p | _ -> failwith "dest_neg"
+let dest_neg = function Not p -> p | _ -> failwith "dest_neg"
 let dest_and = function And (p,q) -> (p,q) | _ -> failwith "dest_and"
 let dest_or = function Or (p,q) -> (p,q) | _ -> failwith "dest_or"
-let dest_imp = function Imp (p,q) -> (p,q) | _ -> failwith "dest_imp"
-let dest_iff = function Iff (p,q) -> (p,q) | _ -> failwith "dest_iff"
+let dest_imp = function Impl (p,q) -> (p,q) | _ -> failwith "dest_imp"
+let dest_iff = function Equiv (p,q) -> (p,q) | _ -> failwith "dest_iff"
 
 let antecedent fm = fst (dest_imp fm)
 let consequent fm = snd (dest_imp fm)
@@ -43,28 +43,28 @@ let rec disjuncts = function
 
 (* Bottom-up traversal *)
 let rec traverse f = function
-  | Neg p -> f (Neg (traverse f p))
+  | Not p -> f (Not (traverse f p))
   | And (p,q) -> f (And (traverse f p, traverse f q))
   | Or  (p,q) -> f (Or (traverse f p, traverse f q))
-  | Imp (p,q) -> f (Imp (traverse f p, traverse f q))
-  | Iff (p,q) -> f (Iff (traverse f p, traverse f q))
+  | Impl (p,q) -> f (Impl (traverse f p, traverse f q))
+  | Equiv (p,q) -> f (Equiv (traverse f p, traverse f q))
   | _ as fm -> fm
 
 let rec on_atoms f = function
   | False -> False
   | True -> True
   | Atom x -> f x
-  | Neg p -> Neg (on_atoms f p)
+  | Not p -> Not (on_atoms f p)
   | And (p,q) -> And (on_atoms f p, on_atoms f q)
   | Or  (p,q) -> Or  (on_atoms f p, on_atoms f q)
-  | Imp (p,q) -> Imp (on_atoms f p, on_atoms f q)
-  | Iff (p,q) -> Iff (on_atoms f p, on_atoms f q)
+  | Impl (p,q) -> Impl (on_atoms f p, on_atoms f q)
+  | Equiv (p,q) -> Equiv (on_atoms f p, on_atoms f q)
 
 let rec over_atoms f fm b =
   match fm with
   | Atom a -> f a b
-  | Neg p -> over_atoms f p b
-  | And (p,q) | Or (p,q) | Imp (p,q) | Iff (p,q) ->
+  | Not p -> over_atoms f p b
+  | And (p,q) | Or (p,q) | Impl (p,q) | Equiv (p,q) ->
     over_atoms f p (over_atoms f q b)
   | _ -> b
 
@@ -77,11 +77,11 @@ let rec eval fm env =
   | False -> false
   | True -> true
   | Atom x -> V.lookup x env
-  | Neg p -> not (eval p env)
+  | Not p -> not (eval p env)
   | And (p,q) -> (eval p env) && (eval q env)
   | Or  (p,q) -> (eval p env) || (eval q env)
-  | Imp (p,q) -> not (eval p env) || (eval q env)
-  | Iff (p,q) -> (eval p env) = (eval q env)
+  | Impl (p,q) -> not (eval p env) || (eval q env)
+  | Equiv (p,q) -> (eval p env) = (eval q env)
 
 let atoms fm =
   atom_union (fun a -> [a]) fm
@@ -100,7 +100,7 @@ let tautology fm =
   V.on_all (atoms fm) (eval fm)
 
 let unsatisfiable fm =
-  tautology (Neg fm)
+  tautology (Not fm)
 
 let satisfiable fm =
   not (unsatisfiable fm)
@@ -112,24 +112,45 @@ let rec dual = function
   | False -> True
   | True -> False
   | Atom x as a -> a
-  | Neg p -> Neg (dual p)
+  | Not p -> Not (dual p)
   | And (p,q) -> Or (dual p, dual q)
   | Or (p,q) -> And (dual p, dual q)
   | _ -> failwith "Cannot dualize formulas with ==> or <=>"
                   
 let psimplify fm =
   let simpl = function
-    | Neg False -> True
-    | Neg True -> False
-    | Neg (Neg p) -> p
+    | Not False -> True
+    | Not True -> False
+    | Not (Not p) -> p
     | And (p, False) | And (False, p) -> False
     | And (p, True)  | And (True, p) -> p
-    | Or  (p, False) | Or  (False, p) -> p
-    | Or  (p, True)  | Or  (True, p) -> True
-    | Imp (False, p) | Imp (p, True) -> True
-    | Imp (True, p) -> p
-    | Imp (p, False) -> Neg p
-    | Iff (p, True)  | Iff (True, p) -> p
-    | Iff (p, False) | Iff (False, p) -> Neg p
+    | Or (p, False) | Or (False, p) -> p
+    | Or (p, True)  | Or (True, p) -> True
+    | Impl (False, p) | Impl (p, True) -> True
+    | Impl (True, p) -> p
+    | Impl (p, False) -> Not p
+    | Equiv (p, True)  | Equiv (True, p) -> p
+    | Equiv (p, False) | Equiv (False, p) -> Not p
     | _ as fm -> fm
   in traverse simpl fm
+
+let positive_lit = function Atom _ -> true | _ -> false
+let negative_lit = function Not (Atom _) -> true | _ -> false
+let negate = function Not p -> p | p -> Not p
+
+let nnf fm =
+  let rec nnf_aux = function
+    | And (p, q) -> And (nnf_aux p, nnf_aux q)
+    | Or (p, q) -> Or (nnf_aux p, nnf_aux q)
+    | Impl (p, q) -> Or (nnf_aux (Not p), nnf_aux q)
+    | Equiv (p, q) -> Or (And (nnf_aux p, nnf_aux q),
+                          And (nnf_aux (Not p), nnf_aux (Not q)))
+    | Not (Not p) -> nnf_aux p
+    | Not (And (p, q)) -> Or (nnf_aux (Not p), nnf_aux (Not q))
+    | Not (Or (p, q)) -> And (nnf_aux (Not p), nnf_aux (Not q))
+    | Not (Impl (p, q)) -> And (nnf_aux p, nnf_aux (Not q))
+    | Not (Equiv (p, q)) -> Or (And (nnf_aux p, nnf_aux (Not q)),
+                                And (nnf_aux (Not p), nnf_aux q))
+    | _ as fm -> fm
+  in
+  nnf_aux (psimplify fm)

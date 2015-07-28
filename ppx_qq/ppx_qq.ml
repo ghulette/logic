@@ -1,10 +1,13 @@
-(*
-Compile:
-ocamlfind ocamlc -package compiler-libs.common -linkpkg -o ppx_qq ppx_qq.ml
+(*****************************************************************************
 
-Use:
-ocamlc -ppx ./ppx_qq example.ml
-*)
+To use this syntax extension:
+
+  $ ocaml -ppx ppx_qq/ppx_qq fm.cma 
+  # #install_printer Formula.print_formula;;
+  # {fm| p /\ q \/ r |fm};;
+  - : char Formula.t = p /\ q \/ r
+
+*****************************************************************************)
 
 open Ast_mapper
 open Ast_helper
@@ -19,7 +22,7 @@ let formula_expr loc s =
 let qq_mapper argv =
   let expr mapper e =
     match e.pexp_desc with
-    | Pexp_constant (Const_string (s, Some "p")) ->
+    | Pexp_constant (Const_string (s, Some "fm")) ->
        formula_expr e.pexp_loc s
     | _ -> default_mapper.expr mapper e
   in

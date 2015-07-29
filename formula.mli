@@ -51,3 +51,4 @@ val positive_lit : 'a t -> bool
 val negate : 'a t -> 'a t
 
 val nnf : 'a t -> 'a t
+val nenf : 'a t -> 'a t

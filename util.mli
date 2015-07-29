@@ -4,6 +4,8 @@ val replicate : 'a -> int -> 'a list
 val seq : int -> int list
 val time : ('a -> 'b) -> 'a -> 'b
 
+val fold_left_end : ('a -> 'a -> 'a) -> 'a list -> 'a
+                                 
 val print_table :
   int -> ('a -> string) -> string list -> 'a list list -> unit
                                  

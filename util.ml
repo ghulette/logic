@@ -29,6 +29,10 @@ let print_table cell_width to_s header rows =
   String.concat "-+-" divs |> printf "+-%s-+\n";
   List.iter print_row rows
 
+let fold_left_end f = function
+  | x::xs -> List.fold_left f x xs
+  | [] -> invalid_arg "fold_left1"
+            
 module Infix =
   struct
     let ( ** ) = compose

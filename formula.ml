@@ -45,10 +45,10 @@ let rec disjuncts = function
 let rec traverse f = function
   | Not p -> f (Not (traverse f p))
   | And (p,q) -> f (And (traverse f p, traverse f q))
-  | Or  (p,q) -> f (Or (traverse f p, traverse f q))
+  | Or (p,q) -> f (Or (traverse f p, traverse f q))
   | Impl (p,q) -> f (Impl (traverse f p, traverse f q))
   | Equiv (p,q) -> f (Equiv (traverse f p, traverse f q))
-  | _ as fm -> fm
+  | fm -> f fm
 
 let rec on_atoms f = function
   | False -> False
@@ -56,7 +56,7 @@ let rec on_atoms f = function
   | Atom x -> f x
   | Not p -> Not (on_atoms f p)
   | And (p,q) -> And (on_atoms f p, on_atoms f q)
-  | Or  (p,q) -> Or  (on_atoms f p, on_atoms f q)
+  | Or (p,q) -> Or (on_atoms f p, on_atoms f q)
   | Impl (p,q) -> Impl (on_atoms f p, on_atoms f q)
   | Equiv (p,q) -> Equiv (on_atoms f p, on_atoms f q)
 
@@ -79,7 +79,7 @@ let rec eval fm env =
   | Atom x -> V.lookup x env
   | Not p -> not (eval p env)
   | And (p,q) -> (eval p env) && (eval q env)
-  | Or  (p,q) -> (eval p env) || (eval q env)
+  | Or (p,q) -> (eval p env) || (eval q env)
   | Impl (p,q) -> not (eval p env) || (eval q env)
   | Equiv (p,q) -> (eval p env) = (eval q env)
 
@@ -131,7 +131,7 @@ let psimplify fm =
     | Impl (p, False) -> Not p
     | Equiv (p, True)  | Equiv (True, p) -> p
     | Equiv (p, False) | Equiv (False, p) -> Not p
-    | _ as fm -> fm
+    | fm -> fm
   in traverse simpl fm
 
 let positive_lit = function Atom _ -> true | _ -> false
@@ -139,18 +139,40 @@ let negative_lit = function Not (Atom _) -> true | _ -> false
 let negate = function Not p -> p | p -> Not p
 
 let nnf fm =
-  let rec nnf_aux = function
-    | And (p, q) -> And (nnf_aux p, nnf_aux q)
-    | Or (p, q) -> Or (nnf_aux p, nnf_aux q)
-    | Impl (p, q) -> Or (nnf_aux (Not p), nnf_aux q)
-    | Equiv (p, q) -> Or (And (nnf_aux p, nnf_aux q),
-                          And (nnf_aux (Not p), nnf_aux (Not q)))
-    | Not (Not p) -> nnf_aux p
-    | Not (And (p, q)) -> Or (nnf_aux (Not p), nnf_aux (Not q))
-    | Not (Or (p, q)) -> And (nnf_aux (Not p), nnf_aux (Not q))
-    | Not (Impl (p, q)) -> And (nnf_aux p, nnf_aux (Not q))
-    | Not (Equiv (p, q)) -> Or (And (nnf_aux p, nnf_aux (Not q)),
-                                And (nnf_aux (Not p), nnf_aux q))
-    | _ as fm -> fm
+  let conj_disj = function
+    | Impl (p, q) -> Or (Not p, q)
+    | Equiv (p, q) -> And (Or (Not p, q), Or (Not q, p))
+    | fm -> fm
   in
-  nnf_aux (psimplify fm)
+  let rec aux = function
+    | And (p, q) -> And (aux p, aux q)
+    | Or (p, q) -> Or (aux p, aux q)
+    | Not (Not p) -> aux p
+    | Not (And (p, q)) -> aux (Or (Not p, Not q))
+    | Not (Or (p, q)) -> aux (And (Not p, Not q))
+    | fm -> fm
+  in
+  psimplify fm |> traverse conj_disj |> aux
+
+let nenf fm =
+  let rec nenf_aux = function
+    | Not (Not p) -> nenf_aux p
+    | Not (And (p,q)) -> Or (nenf_aux (Not p), nenf_aux (Not q))
+    | Not (Or (p,q)) -> And (nenf_aux (Not p), nenf_aux (Not q))
+    | Not (Impl (p,q)) -> And (nenf_aux p, nenf_aux (Not q))
+    | Not (Equiv (p,q)) -> Equiv (nenf_aux p, nenf_aux (Not q))
+    | And (p,q) -> And (nenf_aux p, nenf_aux q)
+    | Or (p,q) -> Or (nenf_aux p, nenf_aux q)
+    | Impl (p,q) -> Or (nenf_aux (Not p), nenf_aux q)
+    | Equiv (p,q) -> Equiv (nenf_aux p, nenf_aux q)
+    | fm -> fm
+  in
+  nenf_aux (psimplify fm)
+
+let list_conj = function
+  | [] -> True
+  | ps -> Util.fold_left_end mk_and ps
+
+let list_disj = function
+  | [] -> False
+  | ps -> Util.fold_left_end mk_or ps

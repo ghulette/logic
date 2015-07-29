@@ -138,6 +138,7 @@ let positive_lit = function Atom _ -> true | _ -> false
 let negative_lit = function Not (Atom _) -> true | _ -> false
 let negate = function Not p -> p | p -> Not p
 
+(* There has to be a clearer way to write this function *)
 let nnf fm =
   let conj_disj = function
     | Impl (p, q) -> Or (Not p, q)

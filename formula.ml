@@ -5,7 +5,9 @@ type 'a t = 'a Ast.t
 let to_string = Ast.to_string
 
 let print_formula ppf fm =
-  Format.fprintf ppf "%s" (to_string Char.escaped fm);;
+  Format.fprintf ppf "%s\n" (to_string Char.escaped fm);;
+
+let print = print_formula Format.std_formatter
 
 let of_string s =
   let lexbuf = Lexing.from_string s in
@@ -18,20 +20,20 @@ let of_channel ch =
 open Ast
 
 let mk_atom x = Atom x
-let mk_neg p = Not p
+let mk_not p = Not p
 let mk_and p q = And (p,q)
 let mk_or p q = Or (p,q)
-let mk_imp p q = Impl (p,q)
-let mk_iff p q = Equiv (p,q)
+let mk_impl p q = Impl (p,q)
+let mk_equiv p q = Equiv (p,q)
 let dest_atom = function Atom x -> x | _ -> failwith "dest_atom"
-let dest_neg = function Not p -> p | _ -> failwith "dest_neg"
+let dest_not = function Not p -> p | _ -> failwith "dest_not"
 let dest_and = function And (p,q) -> (p,q) | _ -> failwith "dest_and"
 let dest_or = function Or (p,q) -> (p,q) | _ -> failwith "dest_or"
-let dest_imp = function Impl (p,q) -> (p,q) | _ -> failwith "dest_imp"
-let dest_iff = function Equiv (p,q) -> (p,q) | _ -> failwith "dest_iff"
+let dest_impl = function Impl (p,q) -> (p,q) | _ -> failwith "dest_impl"
+let dest_equiv = function Equiv (p,q) -> (p,q) | _ -> failwith "dest_equiv"
 
-let antecedent fm = fst (dest_imp fm)
-let consequent fm = snd (dest_imp fm)
+let antecedent fm = fst (dest_impl fm)
+let consequent fm = snd (dest_impl fm)
 
 let rec conjuncts = function
   | And(p,q) -> conjuncts p @ conjuncts q
@@ -40,15 +42,6 @@ let rec conjuncts = function
 let rec disjuncts = function
   | Or(p,q) -> disjuncts p @ disjuncts q
   | fm -> [fm]
-
-(* Bottom-up traversal *)
-let rec traverse f = function
-  | Not p -> f (Not (traverse f p))
-  | And (p,q) -> f (And (traverse f p, traverse f q))
-  | Or (p,q) -> f (Or (traverse f p, traverse f q))
-  | Impl (p,q) -> f (Impl (traverse f p, traverse f q))
-  | Equiv (p,q) -> f (Equiv (traverse f p, traverse f q))
-  | fm -> f fm
 
 let rec on_atoms f = function
   | False -> False
@@ -108,15 +101,31 @@ let satisfiable fm =
 let subst pf =
   on_atoms (fun p -> Partial.applyd pf p ~default:(Atom p))
 
-let rec dual = function
-  | False -> True
-  | True -> False
-  | Atom x as a -> a
-  | Not p -> Not (dual p)
-  | And (p,q) -> Or (dual p, dual q)
-  | Or (p,q) -> And (dual p, dual q)
-  | _ -> failwith "Cannot dualize formulas with ==> or <=>"
-                  
+let positive_lit = function Atom _ -> true | _ -> false
+let negative_lit = function Not (Atom _) -> true | _ -> false
+let negate = function Not p -> p | p -> Not p
+
+(* Bottom-up traversal *)
+let rec traverse f = function
+  | Not p -> f (Not (traverse f p))
+  | And (p,q) -> f (And (traverse f p, traverse f q))
+  | Or (p,q) -> f (Or (traverse f p, traverse f q))
+  | Impl (p,q) -> f (Impl (traverse f p, traverse f q))
+  | Equiv (p,q) -> f (Equiv (traverse f p, traverse f q))
+  | fm -> f fm
+
+let dual fm =
+  let xf = function
+    | False -> True
+    | True -> False
+    | And (p,q) -> Or (p,q)
+    | Or (p,q) -> And (p,q)
+    | Impl (_,_) -> failwith "Cannot dualize ==>"
+    | Equiv (_,_) -> failwith "Cannot dualize <=>"
+    | fm -> fm
+  in
+  traverse xf fm
+
 let psimplify fm =
   let simpl = function
     | Not False -> True
@@ -132,43 +141,37 @@ let psimplify fm =
     | Equiv (p, True)  | Equiv (True, p) -> p
     | Equiv (p, False) | Equiv (False, p) -> Not p
     | fm -> fm
-  in traverse simpl fm
+  in
+  traverse simpl fm
 
-let positive_lit = function Atom _ -> true | _ -> false
-let negative_lit = function Not (Atom _) -> true | _ -> false
-let negate = function Not p -> p | p -> Not p
-
-(* There has to be a clearer way to write this function *)
-let nnf fm =
-  let conj_disj = function
+let exp_impl fm =
+  let xf = function
     | Impl (p, q) -> Or (Not p, q)
+    | fm -> fm
+  in
+  traverse xf fm
+
+let exp_equiv fm =
+  let xf = function
     | Equiv (p, q) -> And (Or (Not p, q), Or (Not q, p))
     | fm -> fm
   in
-  let rec aux = function
-    | And (p, q) -> And (aux p, aux q)
-    | Or (p, q) -> Or (aux p, aux q)
-    | Not (Not p) -> aux p
-    | Not (And (p, q)) -> aux (Or (Not p, Not q))
-    | Not (Or (p, q)) -> aux (And (Not p, Not q))
+  traverse xf fm
+
+let exp_nnf fm =
+  let rec xf = function
+    | Not (Not p) -> traverse xf p
+    | Not (And (p, q)) -> traverse xf (Or (Not p, Not q))
+    | Not (Or (p, q)) -> traverse xf (And (Not p, Not q))
     | fm -> fm
   in
-  psimplify fm |> traverse conj_disj |> aux
+  traverse xf fm
+
+let nnf fm =
+  fm |> psimplify |> exp_equiv |> exp_impl |> exp_nnf
 
 let nenf fm =
-  let rec nenf_aux = function
-    | Not (Not p) -> nenf_aux p
-    | Not (And (p,q)) -> Or (nenf_aux (Not p), nenf_aux (Not q))
-    | Not (Or (p,q)) -> And (nenf_aux (Not p), nenf_aux (Not q))
-    | Not (Impl (p,q)) -> And (nenf_aux p, nenf_aux (Not q))
-    | Not (Equiv (p,q)) -> Equiv (nenf_aux p, nenf_aux (Not q))
-    | And (p,q) -> And (nenf_aux p, nenf_aux q)
-    | Or (p,q) -> Or (nenf_aux p, nenf_aux q)
-    | Impl (p,q) -> Or (nenf_aux (Not p), nenf_aux q)
-    | Equiv (p,q) -> Equiv (nenf_aux p, nenf_aux q)
-    | fm -> fm
-  in
-  nenf_aux (psimplify fm)
+  fm |> psimplify |> exp_impl |> exp_nnf
 
 let list_conj = function
   | [] -> True

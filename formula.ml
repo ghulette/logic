@@ -40,21 +40,21 @@ let print_formula ppf fm =
 let print = print_formula Format.std_formatter
 
 let rec of_ast = function
-  | Parser.Const true -> True
-  | Parser.Const false -> False
-  | Parser.Var x -> Atom x
-  | Parser.Not e -> Not (of_ast e)
-  | Parser.Conn (Parser.And, e1, e2) -> And (of_ast e1, of_ast e2)
-  | Parser.Conn (Parser.Or, e1, e2) -> Or (of_ast e1, of_ast e2)
-  | Parser.Conn (Parser.Impl, e1, e2) -> Impl (of_ast e1, of_ast e2)
-  | Parser.Conn (Parser.Equiv, e1, e2) -> Equiv (of_ast e1, of_ast e2)
+  | Ast.Const true -> True
+  | Ast.Const false -> False
+  | Ast.Var x -> Atom x
+  | Ast.Not e -> Not (of_ast e)
+  | Ast.Conn (Ast.And, e1, e2) -> And (of_ast e1, of_ast e2)
+  | Ast.Conn (Ast.Or, e1, e2) -> Or (of_ast e1, of_ast e2)
+  | Ast.Conn (Ast.Impl, e1, e2) -> Impl (of_ast e1, of_ast e2)
+  | Ast.Conn (Ast.Equiv, e1, e2) -> Equiv (of_ast e1, of_ast e2)
   | _ -> failwith "Not a propositional formula"
 
 let of_string s =
-  Parser.of_string s |> of_ast
+  Ast.of_string s |> of_ast
 
 let of_channel ch =
-  Parser.of_channel ch |> of_ast
+  Ast.of_channel ch |> of_ast
 
 let mk_atom x = Atom x
 let mk_not p = Not p

@@ -4,43 +4,58 @@ open Tokens
 
 exception Syntax_error
 
+type id = string
+type quant = Forall | Exists
+type conn = And | Or | Impl | Equiv
+
 type t =
-  | True
-  | False
-  | Atom of char
+  | Const of bool
+  | Var of id
   | Not of t
-  | And of t * t
-  | Or of t * t
+  | Conn of conn * t * t
+  | Quant of quant * id * t
 
-let lexeme p =
-  spaces >> p
+let lexeme p = p >>= fun e -> spaces >> return e
 
-let atom =
-  (lexeme (string "true") >> return True)
-  <|> (lexeme (string "false") >> return False)
-  <|> (lexeme letter >>= fun p -> return (Atom p))
+let ident = lexeme (many1_chars lowercase)
 
-let rec expr1 =
-  (symbol "~" >> expr1)
-  <|> expr2
+let operators =
+  let infix sym f assoc = Infix (symbol sym >> return f, assoc) in
+  let connect c p q = Conn (c,p,q) in
+  [
+    [infix {|/\|} (connect And) Assoc_right];
+    [infix {|\/|} (connect Or) Assoc_right];
+    [infix {|==>|} (connect Impl) Assoc_right];
+    [infix {|<=>|} (connect Equiv) Assoc_right];
+  ]
 
-and expr2 =
-  (expr2 >>= fun e1 ->
-  symbol {|/\|} >>= fun _ ->
-  expr2 >>= fun e2 ->
-  return (And (e1, e2)))
+let rec term s =
+  choice [
+      symbol "true" >> return (Const true);
+      symbol "false" >> return (Const false);
+      (symbol "~" >> term >>= fun e -> return (Not e));
+      quant "forall" Forall;
+      quant "exists" Exists;
+      (ident >>= fun x -> return (Var x));
+      parens expr
+    ] s
 
+and quant sym q =
+  symbol sym >>
+    ident >>= fun x ->
+  comma >>
+    expr >>= fun e ->
+  return (Quant (q,x,e))
 
+and expr s =
+  s |> (expression operators term)
 
-                    (*
-let rec term s = (parens expr <|> decimal) s
+let formula s =
+  s |> (spaces >> expr >>= fun e -> eof >> return e)
 
-and expr s = expression operators term s
-
-let eval s =
-  match parse_string expr s () with
+let parse s =
+  match parse_string formula s () with
   | Success x -> x
   | Failed (msg, _) ->
      print_string msg;
      raise Syntax_error
-                     *)

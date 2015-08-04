@@ -53,8 +53,16 @@ and expr s =
 let formula s =
   s |> (spaces >> expr >>= fun e -> eof >> return e)
 
-let parse s =
+
+let of_string s =
   match parse_string formula s () with
+  | Success x -> x
+  | Failed (msg, _) ->
+     print_string msg;
+     raise Syntax_error
+
+let of_channel ch =
+  match parse_channel formula ch () with
   | Success x -> x
   | Failed (msg, _) ->
      print_string msg;

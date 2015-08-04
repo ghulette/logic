@@ -1,11 +1,6 @@
-fm
 ._d/
 ._ncdi/
 ._bcdi/
-lexer.ml
-lexer.mli
-parser.ml
-parser.mli
 *.cmi
 *.cmo
 *.cmx

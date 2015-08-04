@@ -1,9 +1,8 @@
 SOURCES = util.mli util.ml \
           valuation.mli valuation.ml \
           partial.mli partial.ml \
-          ast.ml parser.mly lexer.mll \
-          formula.mli formula.ml \
-          parser2.ml
+          parser.mli parser.ml \
+          formula.mli formula.ml
 RESULT = fm
 PACKS = mparser.pcre
 

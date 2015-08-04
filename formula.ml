@@ -1,23 +1,60 @@
 module V = Valuation
 
-type 'a t = 'a Ast.t
+type prop = string
 
-let to_string = Ast.to_string
+type 'a t =
+  | False
+  | True
+  | Atom of 'a
+  | Not of 'a t
+  | And of 'a t * 'a t
+  | Or of 'a t * 'a t
+  | Impl of 'a t * 'a t
+  | Equiv of 'a t * 'a t
+
+let to_string e =
+  let rec to_string_pr pr =
+    let prec i s = if i < pr then "(" ^ s ^ ")" else s in
+    function
+    | False -> "false"
+    | True -> "true"
+    | Atom x -> x
+    | Not p -> let s = "~ " ^ (to_string_pr 10 p) in prec 10 s
+    | And (p,q) ->
+       let s = (to_string_pr 9 p)^{| /\ |}^(to_string_pr 8 q) in
+       prec 8 s
+    | Or (p,q) ->
+       let s = (to_string_pr 7 p)^{| \/ |}^(to_string_pr 6 q) in
+       prec 6 s
+    | Impl (p,q) ->
+       let s = (to_string_pr 6 p)^{| ==> |}^(to_string_pr 4 q) in
+       prec 4 s
+    | Equiv (p,q) ->
+       let s = (to_string_pr 5 p)^{| <=> |}^(to_string_pr 2 q) in
+       prec 2 s
+  in to_string_pr 0 e
 
 let print_formula ppf fm =
-  Format.fprintf ppf "%s\n" (to_string Char.escaped fm);;
+  Format.fprintf ppf "%s\n" (to_string fm);;
 
 let print = print_formula Format.std_formatter
 
+let rec of_ast = function
+  | Parser.Const true -> True
+  | Parser.Const false -> False
+  | Parser.Var x -> Atom x
+  | Parser.Not e -> Not (of_ast e)
+  | Parser.Conn (Parser.And, e1, e2) -> And (of_ast e1, of_ast e2)
+  | Parser.Conn (Parser.Or, e1, e2) -> Or (of_ast e1, of_ast e2)
+  | Parser.Conn (Parser.Impl, e1, e2) -> Impl (of_ast e1, of_ast e2)
+  | Parser.Conn (Parser.Equiv, e1, e2) -> Equiv (of_ast e1, of_ast e2)
+  | _ -> failwith "Not a propositional formula"
+
 let of_string s =
-  let lexbuf = Lexing.from_string s in
-  Parser.main Lexer.token lexbuf
+  Parser.of_string s |> of_ast
 
 let of_channel ch =
-  let lexbuf = Lexing.from_channel ch in
-  Parser.main Lexer.token lexbuf
-
-open Ast
+  Parser.of_channel ch |> of_ast
 
 let mk_atom x = Atom x
 let mk_not p = Not p
@@ -86,7 +123,7 @@ let print_truth_table fm =
   let rowf env = List.map (fun x -> V.lookup x env) ats in
   let vals = List.map rowf envs in
   let rows = List.map2 (fun vl r -> vl @ [r]) vals rs in
-  let hdr = (List.map Char.escaped ats) @ ["fm"] in
+  let hdr = ats @ ["fm"] in
   Util.print_table 5 string_of_bool hdr rows
 
 let tautology fm =

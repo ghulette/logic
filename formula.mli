@@ -1,10 +1,11 @@
+type prop
 type 'a t
 
-val to_string : ('a -> string) -> 'a t -> string
-val print_formula : Format.formatter -> char t -> unit
-val print : char t -> unit
-val of_string : string -> char t
-val of_channel : in_channel -> char t
+val to_string : prop t -> string
+val print_formula : Format.formatter -> prop t -> unit
+val print : prop t -> unit
+val of_string : string -> prop t
+val of_channel : in_channel -> prop t
 
 val mk_atom : 'a -> 'a t
 val mk_not : 'a t -> 'a t
@@ -32,7 +33,7 @@ val atoms : 'a t -> 'a list
 
 val eval : 'a t -> 'a Valuation.t -> bool
 
-val print_truth_table : char t -> unit
+val print_truth_table : prop t -> unit
 
 val tautology : 'a t -> bool
 val unsatisfiable : 'a t -> bool

@@ -181,21 +181,21 @@ let psimplify fm =
   in
   traverse simpl fm
 
-let exp_impl fm =
+let expand_impl fm =
   let xf = function
     | Impl (p, q) -> Or (Not p, q)
     | fm -> fm
   in
   traverse xf fm
 
-let exp_equiv fm =
+let expand_equiv fm =
   let xf = function
     | Equiv (p, q) -> And (Or (Not p, q), Or (Not q, p))
     | fm -> fm
   in
   traverse xf fm
 
-let exp_nnf fm =
+let expand_nnf fm =
   let rec xf = function
     | Not (Not p) -> traverse xf p
     | Not (And (p, q)) -> traverse xf (Or (Not p, Not q))
@@ -205,10 +205,10 @@ let exp_nnf fm =
   traverse xf fm
 
 let nnf fm =
-  fm |> psimplify |> exp_equiv |> exp_impl |> exp_nnf
+  fm |> psimplify |> expand_equiv |> expand_impl |> expand_nnf
 
 let nenf fm =
-  fm |> psimplify |> exp_impl |> exp_nnf
+  fm |> psimplify |> expand_impl |> expand_nnf
 
 let list_conj = function
   | [] -> True

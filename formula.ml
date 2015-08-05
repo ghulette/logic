@@ -212,8 +212,8 @@ let nenf fm =
 
 let list_conj = function
   | [] -> True
-  | ps -> Util.fold_left_end mk_and ps
+  | ps -> Util.fold_left1 mk_and ps
 
 let list_disj = function
   | [] -> False
-  | ps -> Util.fold_left_end mk_or ps
+  | ps -> Util.fold_left1 mk_or ps

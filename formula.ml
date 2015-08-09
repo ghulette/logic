@@ -217,3 +217,15 @@ let list_conj = function
 let list_disj = function
   | [] -> False
   | ps -> Util.fold_left1 mk_or ps
+
+let mk_lits ps v =
+  let mk_lit p =
+    let p_at = mk_atom p in
+    if eval p_at v then p_at else mk_not p_at
+  in
+  list_conj (List.map mk_lit ps)
+
+let dnf fm =
+  let ps = atoms fm in
+  let satvals = List.filter (eval fm) (Valuation.all ps) in
+  list_disj (List.map (mk_lits ps) satvals)

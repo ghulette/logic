@@ -54,3 +54,4 @@ val negate : 'a t -> 'a t
 
 val nnf : 'a t -> 'a t
 val nenf : 'a t -> 'a t
+val dnf : 'a t -> 'a t

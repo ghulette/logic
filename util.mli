@@ -5,6 +5,7 @@ val seq : int -> int list
 val time : ('a -> 'b) -> 'a -> 'b
 
 val fold_left1 : ('a -> 'a -> 'a) -> 'a list -> 'a
+val fold_right1 : ('a -> 'a -> 'a) -> 'a list -> 'a
 
 val print_table :
   int -> ('a -> string) -> string list -> 'a list list -> unit

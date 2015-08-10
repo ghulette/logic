@@ -33,6 +33,10 @@ let fold_left1 f = function
   | x::xs -> List.fold_left f x xs
   | [] -> invalid_arg "fold_left1"
 
+let fold_right1 f = function
+  | x::xs -> List.fold_right f xs x
+  | [] -> invalid_arg "fold_right1"
+
 module Infix =
   struct
     let ( ** ) = compose

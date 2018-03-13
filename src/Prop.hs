@@ -140,11 +140,11 @@ subsetEq s1 s2 = all (\x -> elem x s2) s1
 setEq s1 s2 = subsetEq s1 s2 && subsetEq s2 s1
 subset s1 s2 = subsetEq s1 s2 && not (setEq s1 s2)
 
-trivial :: (Eq a, Eq v) => [Prop v a] -> Bool
+trivial :: (Eq v, Eq a) => [Prop v a] -> Bool
 trivial lits = not $ disjoint pos (map negate neg)
   where (pos,neg) = partition isPositive lits
 
-dnf :: (Eq a, Eq v) => Prop v a -> Prop v a
+dnf :: (Eq v, Eq a) => Prop v a -> Prop v a
 dnf = disjoin . map conjoin . simplSetDnf
   where simplSetDnf = subsume . filter (not . trivial) . setDnf . nnf
         subsume fms = filter (\d -> not $ any (\d' -> subset d' d) fms) fms

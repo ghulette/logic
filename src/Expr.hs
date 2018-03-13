@@ -1,64 +1,37 @@
 module Expr where
 
-data Id = String
+data Value = IntVal Integer
+           | BoolVal Bool
+           deriving (Eq, Show)
 
-data Value = IntValue Int
-           | BoolValue Bool
+data Unary = UNeg | UNot deriving (Eq, Show)
 
-intValue :: Value -> Int
-intValue (IntValue x) = x
-intValue _            = undefined
+evalUnary :: Unary -> Value -> Value
+evalUnary UNeg (IntVal n)  = IntVal (-n)
+evalUnary UNot (BoolVal b) = BoolVal (not b)
+evalUnary _ _              = undefined
 
-boolValue :: Value -> Bool
-boolValue (BoolValue x) = x
-boolValue _             = undefined
+data Binop = BAdd | BSub | BMul | BDiv
+           | BAnd | BOr
+           | BLt  | BLte | BEq
+           deriving (Eq, Show)
 
-data Expr = Lit Value
-          | Var Id
-          | Neg Expr
-          | Add Expr Expr
-          | Sub Expr Expr
-          | Mul Expr Expr
-          | Eq Expr Expr
-          | Lt Expr Expr
-          | Gt Expr Expr
+evalBinary :: Binop -> Value -> Value -> Value
+evalBinary BAdd (IntVal n1) (IntVal n2)   = IntVal (n1 + n2)
+evalBinary BSub (IntVal n1) (IntVal n2)   = IntVal (n1 - n2)
+evalBinary BMul (IntVal n1) (IntVal n2)   = IntVal (n1 * n2)
+evalBinary BDiv (IntVal n1) (IntVal n2)   = IntVal (n1 `div` n2)
+evalBinary BAnd (BoolVal b1) (BoolVal b2) = BoolVal (b1 && b2)
+evalBinary BOr (BoolVal b1) (BoolVal b2)  = BoolVal (b1 || b2)
 
-data Type = IntType
-          | BoolType
+data Expr v = Val Value
+            | Var v
+            | Unary Unary (Expr v)
+            | Binop Binop (Expr v) (Expr v)
+            deriving (Eq, Show)
 
-typeCheck :: (Id -> Type) -> Expr -> Maybe Type
-typeCheck _ (Lit (BoolValue _)) = return BoolType
-typeCheck _ (Lit (IntValue _)) = return IntType
-typeCheck env (Var x) = return (env x)
-typeCheck env (Neg e) = do
-  IntType <- typeCheck env e
-  return IntType
-typeCheck env (Add e1 e2) = do
-  IntType <- typeCheck env e1
-  IntType <- typeCheck env e2
-  return IntType
-typeCheck env (Sub e1 e2) = do
-  IntType <- typeCheck env e1
-  IntType <- typeCheck env e2
-  return IntType
-typeCheck env (Mul e1 e2) = do
-  IntType <- typeCheck env e1
-  IntType <- typeCheck env e2
-  return IntType
-typeCheck env (Eq e1 e2) = do
-  IntType <- typeCheck env e1
-  IntType <- typeCheck env e2
-  return BoolType
-typeCheck env (Lt e1 e2) = do
-  IntType <- typeCheck env e1
-  IntType <- typeCheck env e2
-  return BoolType
-typeCheck env (Gt e1 e2) = do
-  IntType <- typeCheck env e1
-  IntType <- typeCheck env e2
-  return BoolType
-
-eval :: (Id -> Value) -> Expr -> Value
-eval _ (Lit val) = val
-eval env (Var x) = env x
-eval env (Neg e) = IntValue . negate . intValue . (eval env) $ e
+eval :: Expr v -> (v -> Value) -> Value
+eval (Val val) _          = val
+eval (Var x) env          = env x
+eval (Unary op e) env     = evalUnary op (eval e env)
+eval (Binop op e1 e2) env = evalBinary op (eval e1 env) (eval e2 env)

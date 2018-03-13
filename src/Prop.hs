@@ -4,19 +4,18 @@
 module Prop where
 
 import           Data.List (foldl', intersect, partition, union)
-import           Data.Text (Text)
 import           Prelude   hiding (negate)
 
-data Prop a = Atom a
+data Prop v a = Atom a
             | FFalse
             | FTrue
-            | Not (Prop a)
-            | And (Prop a) (Prop a)
-            | Or  (Prop a) (Prop a)
-            | Imp (Prop a) (Prop a)
-            | Iff (Prop a) (Prop a)
-            | Forall Ident (Prop a)
-            | Exists Ident (Prop a)
+            | Not (Prop v a)
+            | And (Prop v a) (Prop v a)
+            | Or  (Prop v a) (Prop v a)
+            | Imp (Prop v a) (Prop v a)
+            | Iff (Prop v a) (Prop v a)
+            | Forall v (Prop v a)
+            | Exists v (Prop v a)
             deriving (Eq,Ord,Show,Functor,Foldable,Traversable)
 
 type Valuation a = a -> Bool
@@ -33,8 +32,8 @@ valuations (x:xs) = do
   v <- valuations xs
   [extend v x True, extend v x False]
 
-eval :: Prop a -> Valuation a -> Bool
-eval (Atom x) v  = v x
+eval :: Prop v a -> Valuation a -> Bool
+eval (Atom x) e  = e x
 eval FFalse _    = False
 eval FTrue _     = True
 eval (Not p) v   = not (eval p v)
@@ -43,11 +42,11 @@ eval (Or p q) v  = eval p v || eval q v
 eval (Imp p q) v = not (eval p v) || eval q v
 eval (Iff p q) v = eval p v == eval q v
 
-atoms :: Prop a -> [a]
+atoms :: Prop v a -> [a]
 atoms = foldr (:) []
 
-rewrite :: (Prop a -> Prop a) -> Prop a -> Prop a
-rewrite r a@(Atom x) = r a
+rewrite :: (Prop v a -> Prop v a) -> Prop v a -> Prop v a
+rewrite r a@(Atom _) = r a
 rewrite r FFalse     = r FFalse
 rewrite r FTrue      = r FTrue
 rewrite r (Not p)    = r (Not (rewrite r p))
@@ -56,7 +55,7 @@ rewrite r (Or p q)   = r (Or (rewrite r p) (rewrite r q))
 rewrite r (Imp p q)  = r (Imp (rewrite r p) (rewrite r q))
 rewrite r (Iff p q)  = r (Iff (rewrite r p) (rewrite r q))
 
-simplify :: Prop a -> Prop a
+simplify :: Prop v a -> Prop v a
 simplify = rewrite rw
   where rw (Not FFalse)   = FTrue
         rw (Not FTrue)    = FFalse
@@ -79,34 +78,34 @@ simplify = rewrite rw
         rw (Iff FFalse p) = Not p
         rw p@_            = p
 
-conjuncts :: Prop a -> [Prop a]
+conjuncts :: Prop v a -> [Prop v a]
 conjuncts FTrue     = []
 conjuncts (And p q) = conjuncts p ++ conjuncts q
-conjuncts p@_       = [p]
+conjuncts p         = [p]
 
-conjoin :: [Prop a] -> Prop a
+conjoin :: [Prop v a] -> Prop v a
 conjoin []       = FTrue
 conjoin (fm:fms) = foldl' And fm fms
 
-disjuncts :: Prop a -> [Prop a]
+disjuncts :: Prop v a -> [Prop v a]
 disjuncts FFalse   = []
 disjuncts (Or p q) = disjuncts p ++ disjuncts q
-disjuncts p@_      = [p]
+disjuncts p        = [p]
 
-disjoin :: [Prop a] -> Prop a
+disjoin :: [Prop v a] -> Prop v a
 disjoin []       = FFalse
 disjoin (fm:fms) = foldl' Or fm fms
 
-tautology :: Ord a => Prop a -> Bool
+tautology :: Ord a => Prop v a -> Bool
 tautology fm = all (eval fm) (valuations $ atoms fm)
 
-unsatisfiable :: Ord a => Prop a -> Bool
+unsatisfiable :: Ord a => Prop v a -> Bool
 unsatisfiable = tautology . Not
 
-satisfiable :: Ord a => Prop a -> Bool
+satisfiable :: Ord a => Prop v a -> Bool
 satisfiable = not . unsatisfiable
 
-nnf :: Prop a -> Prop a
+nnf :: Prop v a -> Prop v a
 nnf = simplify . nn
   where
     nn (And p q)       = nn p `And` nn q
@@ -118,7 +117,7 @@ nnf = simplify . nn
     nn (Not (Or p q))  = nn (Not p) `And` nn (Not q)
     nn (Not (Imp p q)) = nn p `And` nn (Not q)
     nn (Not (Iff p q)) = (nn p `And` nn (Not q)) `Or` (nn (Not p) `And` nn q)
-    nn p@_             = p
+    nn p               = p
 
 isNegative (Not _) = True
 isNegative _       = False
@@ -130,27 +129,22 @@ negate p       = Not p
 disjoint :: Eq a => [a] -> [a] -> Bool
 disjoint s1 s2 = null $ intersect s1 s2
 
-setDnf :: Eq a => Prop a -> [[Prop a]]
+setDnf :: (Eq a, Eq v) => Prop v a -> [[Prop v a]]
 setDnf FFalse      = []
 setDnf FTrue       = [[]]
 setDnf (p `And` q) = [ union x y | x <- setDnf p, y <- setDnf q ]
-setDnf (p `Or` q)  = union (setDnf p) (setDnf q)
-setDnf p@_         = [[p]]
+setDnf (p `Or` q)  = setDnf p `union` setDnf q
+setDnf p           = [[p]]
 
 subsetEq s1 s2 = all (\x -> elem x s2) s1
 setEq s1 s2 = subsetEq s1 s2 && subsetEq s2 s1
 subset s1 s2 = subsetEq s1 s2 && not (setEq s1 s2)
 
-trivial :: Eq a => [Prop a] -> Bool
+trivial :: (Eq a, Eq v) => [Prop v a] -> Bool
 trivial lits = not $ disjoint pos (map negate neg)
   where (pos,neg) = partition isPositive lits
 
-dnf :: Eq a => Prop a -> Prop a
+dnf :: (Eq a, Eq v) => Prop v a -> Prop v a
 dnf = disjoin . map conjoin . simplSetDnf
   where simplSetDnf = subsume . filter (not . trivial) . setDnf . nnf
         subsume fms = filter (\d -> not $ any (\d' -> subset d' d) fms) fms
-
-newtype Ident = Ident { getIdent :: Text } deriving (Eq,Ord,Show)
-data Term = Var Ident | Fn Ident [Term] deriving (Eq,Ord,Show)
-data Rel = Rel Ident [Term] deriving (Eq,Ord,Show)
-type FOL = Prop Rel
